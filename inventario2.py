@@ -3,8 +3,10 @@ import json
 import os
 import pandas as pd
 from io import BytesIO
+from datetime import date
 
 INVENTARIO_FILE = "inventario_categorias.json"
+HISTORIAL_FILE = "historial_inventario.csv"
 
 productos_por_categoria = {
     "Impulsivo": {
@@ -47,6 +49,26 @@ def guardar_inventario(inventario):
     with open(INVENTARIO_FILE, "w") as f:
         json.dump(inventario, f)
 
+def guardar_historial(fecha, usuario, categoria, producto, cantidad):
+    nuevo_registro = pd.DataFrame([{
+        "Fecha": fecha,
+        "Usuario": usuario,
+        "Categoría": categoria,
+        "Producto": producto,
+        "Cantidad": cantidad
+    }])
+    if os.path.exists(HISTORIAL_FILE):
+        historial = pd.read_csv(HISTORIAL_FILE)
+        historial = pd.concat([historial, nuevo_registro], ignore_index=True)
+    else:
+        historial = nuevo_registro
+    historial.to_csv(HISTORIAL_FILE, index=False)
+
+def cargar_historial():
+    if os.path.exists(HISTORIAL_FILE):
+        return pd.read_csv(HISTORIAL_FILE)
+    return pd.DataFrame(columns=["Fecha", "Usuario", "Categoría", "Producto", "Cantidad"])
+
 def login():
     st.sidebar.title("Inicio de sesión")
     usuario = st.sidebar.text_input("Usuario")
@@ -63,8 +85,10 @@ def to_excel_bytes(df):
         df.to_excel(writer, index=False)
     return output.getvalue()
 
-def empleado_interfaz(inventario):
+def empleado_interfaz(inventario, usuario):
     st.title("Panel Empleado: Cargar productos")
+
+    fecha_carga = st.date_input("Selecciona la fecha de carga", value=date.today())
 
     tabs = st.tabs(list(inventario.keys()))
     for i, categoria in enumerate(inventario.keys()):
@@ -97,6 +121,7 @@ def empleado_interfaz(inventario):
                         else:
                             productos[producto_seleccionado] = total_kilos
                         guardar_inventario(inventario)
+                        guardar_historial(fecha_carga, usuario, categoria, producto_seleccionado, total_kilos)
                         st.success(f"Stock actualizado para {producto_seleccionado} en {categoria}. Nuevo stock: {productos[producto_seleccionado]:.2f} kilos")
 
                 st.write(f"Inventario en categoría {categoria}:")
@@ -115,6 +140,7 @@ def empleado_interfaz(inventario):
                         else:
                             productos[producto_seleccionado] = cantidad
                         guardar_inventario(inventario)
+                        guardar_historial(fecha_carga, usuario, categoria, producto_seleccionado, cantidad)
                         st.success(f"Stock actualizado para {producto_seleccionado} en {categoria}. Nuevo stock: {productos[producto_seleccionado]}")
 
                 st.write(f"Inventario en categoría {categoria}:")
@@ -160,13 +186,27 @@ def administrador_interfaz(inventario):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+    st.markdown("---")
+    st.subheader("📅 Historial de cargas")
+    historial = cargar_historial()
+    if not historial.empty:
+        año = st.number_input("Año", min_value=2000, max_value=2100, value=date.today().year)
+        mes = st.number_input("Mes", min_value=1, max_value=12, value=date.today().month)
+        historial["Fecha"] = pd.to_datetime(historial["Fecha"])
+        filtro = historial[(historial["Fecha"].dt.year == año) & (historial["Fecha"].dt.month == mes)]
+        if not filtro.empty:
+            st.dataframe(filtro)
+        else:
+            st.warning("No hay registros para ese mes.")
+    else:
+        st.info("Aún no hay registros en el historial.")
+
 def main():
     usuario, rol = login()
-
     if usuario and rol:
         inventario = cargar_inventario()
         if rol == 'empleado':
-            empleado_interfaz(inventario)
+            empleado_interfaz(inventario, usuario)
         elif rol == 'administrador':
             administrador_interfaz(inventario)
     else:
@@ -174,4 +214,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
