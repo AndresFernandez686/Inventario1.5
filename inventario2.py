@@ -3,7 +3,6 @@ import json
 import os
 import pandas as pd
 from io import BytesIO
-import matplotlib.pyplot as plt
 
 INVENTARIO_FILE = "inventario_categorias.json"
 
@@ -30,7 +29,6 @@ usuarios = {
     'admin1': 'administrador'
 }
 
-# Opciones para baldes con sus valores en kilos
 opciones_valde = {
     "Vacío": 0.0,
     "Casi lleno": 0.3,
@@ -65,21 +63,6 @@ def to_excel_bytes(df):
         df.to_excel(writer, index=False)
     return output.getvalue()
 
-def grafico_stock(inventario):
-    # Crear gráfico barras con stock total por categoría
-    categorias = []
-    totales = []
-    for cat, prods in inventario.items():
-        total = sum(prods.values())
-        categorias.append(cat)
-        totales.append(total)
-
-    fig, ax = plt.subplots()
-    ax.bar(categorias, totales, color=['#1f77b4', '#ff7f0e', '#2ca02c'])
-    ax.set_title("Stock total por categoría")
-    ax.set_ylabel("Cantidad")
-    st.pyplot(fig)
-
 def empleado_interfaz(inventario):
     st.title("Panel Empleado: Cargar productos")
 
@@ -89,7 +72,6 @@ def empleado_interfaz(inventario):
             productos = inventario[categoria]
             producto_seleccionado = st.selectbox(f"Selecciona un producto de {categoria}", list(productos.keys()))
 
-            # Opción añadir o reemplazar
             modo_actualizacion = st.radio(
                 "¿Deseas añadir a la cantidad existente o reemplazarla?",
                 ("Añadir", "Reemplazar"),
@@ -100,12 +82,10 @@ def empleado_interfaz(inventario):
                 st.markdown("### Selecciona el estado de hasta 6 valdes:")
 
                 total_kilos = 0.0
-                valores_valdes = []
 
                 for n in range(1, 7):
                     opcion = st.selectbox(f"Valde {n}", list(opciones_valde.keys()), key=f"{producto_seleccionado}_valde_{n}")
                     valor = opciones_valde[opcion]
-                    valores_valdes.append(valor)
                     total_kilos += valor
 
                 if st.button(f"Actualizar stock en {categoria} para {producto_seleccionado}", key=f"{categoria}_{producto_seleccionado}_btn"):
@@ -164,8 +144,6 @@ def administrador_interfaz(inventario):
 
     st.markdown(f"## Total general en la heladería: {total_general:.2f}")
 
-    grafico_stock(inventario)
-
     st.markdown("---")
     st.subheader("Descargar inventarios por categoría")
 
@@ -196,3 +174,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
