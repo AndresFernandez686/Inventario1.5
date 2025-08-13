@@ -33,9 +33,9 @@ usuarios = {
 
 opciones_valde = {
     "Vacío": 0.0,
-    "Casi lleno": 0.3,
-    "Medio lleno": 0.5,
-    "Valde lleno": 1.0
+    "Casi lleno": 5.5,
+    "Medio lleno": 3.2,
+    "Valde lleno": 7.4
 }
 
 def cargar_inventario():
